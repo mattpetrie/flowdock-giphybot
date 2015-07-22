@@ -1,7 +1,12 @@
 var request = require('request');
+var http = require('http');
 var Session = require('flowdock').Session;
 
 var session = new Session(process.env.FLOWDOCK_API_KEY);
+
+// This is is just to keep Heroku from shutting down the app for not binding to a port
+var keepAliveServer = new http.Server();
+keepAliveServer.listen(process.env.PORT || 5000);
 
 var PREFIX = '!giphy';
 var GIPHY_REQ_STRING =
