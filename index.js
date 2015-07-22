@@ -81,7 +81,7 @@ function postComment(session, message, currentFlow, commentBody) {
     flow_token: flowAPIToken,
     event: 'comment',
     content: commentBody,
-    tags: ['giphybot'],
+    tags: constructTags(message),
     external_user_name: 'giphybot'
   };
 
@@ -95,4 +95,9 @@ function findCurrentFlow(message, flows) {
   return _.find(flows, function(flow) {
     return flow.id === message.flow;
   });
+}
+
+function constructTags(message) {
+  var tags = message.content.split(' ').slice(1);
+  return ['giphybot'].concat(tags);
 }
