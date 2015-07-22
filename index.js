@@ -1,6 +1,7 @@
 var request = require('request');
 var http = require('http');
 var Session = require('flowdock').Session;
+var _ = require('lodash');
 
 var session = new Session(process.env.FLOWDOCK_API_KEY);
 
@@ -14,16 +15,15 @@ var GIPHY_REQ_STRING =
     process.env.GIPHY_API_KEY + '&tag=';
 
 session.flows(function(err, flows) {
-  var stream, flowIds, flowNames;
+  var stream;
+  var flowIds = [];
+  var flowNames = [];
 
   if (err) console.error(err);
 
-  flowIds = flows.map(function(flow) {
-    return flow.id;
-  });
-
-  flowNames = flows.map(function(flow) {
-    return flow.name;
+  _.forEach(flows, function(flow) {
+    flowIds.push(flow.id);
+    flowNames.push(flow.name);
   });
 
   stream = session.stream(flowIds);
@@ -32,26 +32,32 @@ session.flows(function(err, flows) {
 
   return stream.on('message', function(message) {
     if (message.event === 'message') {
-      processMessage(session, message);
+      processMessage(session, message, flows);
     }
   });
 });
 
-function processMessage(session, message) {
+function processMessage(session, message, flows) {
   var content, query;
+  console.log('Message received:', message);
   content = message.content.split(' ');
 
   if (content[0] === PREFIX) {
     query = content.slice(1).join('+');
-    request(GIPHY_REQ_STRING + query, respondWithGif(session, message));
+    request(GIPHY_REQ_STRING + query, respondWithGif(session, message, flows));
   }
 }
 
-function respondWithGif(session, message) {
+function respondWithGif(session, message, flows) {
   return function(err, response, body) {
+    var currentFlow = _.find(flows, function(flow) {
+      return flow.id === message.flow;
+    });
+
     if (err) {
       console.error(err);
-      session.comment(message.flow, message.id, 'Oh noes! Something went wrong!');
+      // session.comment(message.flow, message.id, 'Oh noes! Something went wrong!', ['gipybot']);
+      postComment(session, message, currentFlow, 'Oh noes! Something went wrong');
     }
 
     var gif;
@@ -59,10 +65,33 @@ function respondWithGif(session, message) {
       gif = JSON.parse(body).data.image_original_url;
 
       if (!gif) {
-        session.comment(message.flow, message.id, 'Sorry, no GIF has been found!');
+        postComment(session, message, currentFlow, 'Sorry, no GIF has been found!');
+        // session.comment(message.flow, message.id, 'Sorry, no GIF has been found!', ['giphybot']);
       } else {
-        session.comment(message.flow, message.id, gif);
+        // session.comment(message.flow, message.id, gif, ['giphybot']);
+        postComment(session, message, currentFlow, gif);
       }
     }
   };
+}
+
+function postComment(session, message, currentFlow, commentBody) {
+  var path = '/flows/' + currentFlow.organization.parameterized_name +
+    '/' + currentFlow.parameterized_name + '/messages/' + message.id +
+    '/comments';
+
+  var flowAPIToken = currentFlow.api_token;
+
+  var comment = {
+    flow_token: flowAPIToken,
+    event: 'comment',
+    content: commentBody,
+    tags: ['giphybot'],
+    external_user_name: 'giphybot'
+  };
+
+  session.post(path, comment, function(err) {
+      if (err) console.error(err);
+    }
+  );
 }
