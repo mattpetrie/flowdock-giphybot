@@ -1,0 +1,24 @@
+{
+  "name": "flowdock-giphybot",
+  "version": "0.1.0",
+  "description": "Giphy intergration for Flowdock",
+  "engines": {
+    "iojs": "2.3.x",
+    "npm": "2.12.x"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "giphy",
+    "flowdock"
+  ],
+  "author": "Matt Petrie",
+  "license": "MIT",
+  "dependencies": {
+    "flowdock": "0.9.0",
+    "request": "2.60.0"
+  }
+}
