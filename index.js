@@ -38,25 +38,22 @@ session.flows(function(err, flows) {
 });
 
 function processMessage(session, message, flows) {
-  var content, query;
-  console.log('Message received:', message);
+  var content, currentFlow, query;
+
+  currentFlow = findCurrentFlow(message, flows);
+
   content = message.content.split(' ');
 
   if (content[0] === PREFIX) {
     query = content.slice(1).join('+');
-    request(GIPHY_REQ_STRING + query, respondWithGif(session, message, flows));
+    request(GIPHY_REQ_STRING + query, respondWithGif(session, message, currentFlow));
   }
 }
 
-function respondWithGif(session, message, flows) {
+function respondWithGif(session, message, currentFlow) {
   return function(err, response, body) {
-    var currentFlow = _.find(flows, function(flow) {
-      return flow.id === message.flow;
-    });
-
     if (err) {
       console.error(err);
-      // session.comment(message.flow, message.id, 'Oh noes! Something went wrong!', ['gipybot']);
       postComment(session, message, currentFlow, 'Oh noes! Something went wrong');
     }
 
@@ -66,9 +63,7 @@ function respondWithGif(session, message, flows) {
 
       if (!gif) {
         postComment(session, message, currentFlow, 'Sorry, no GIF has been found!');
-        // session.comment(message.flow, message.id, 'Sorry, no GIF has been found!', ['giphybot']);
       } else {
-        // session.comment(message.flow, message.id, gif, ['giphybot']);
         postComment(session, message, currentFlow, gif);
       }
     }
@@ -94,4 +89,10 @@ function postComment(session, message, currentFlow, commentBody) {
       if (err) console.error(err);
     }
   );
+}
+
+function findCurrentFlow(message, flows) {
+  return _.find(flows, function(flow) {
+    return flow.id === message.flow;
+  });
 }
